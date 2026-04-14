@@ -6,8 +6,8 @@ app = Flask(__name__)
 
 @app.route('/transcript', methods=['POST'])
 def get_transcript():
-        data = request.json
-        url = data.get('url', '')
+    data = request.json
+    url = data.get('url', '')
 
     match = re.search(r'(?:v=|youtu\.be/)([^&\n?#]+)', url)
     if not match:
