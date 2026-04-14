@@ -20,7 +20,7 @@ def get_transcript():
                 transcript_list = ytt_api.fetch(video_id, languages=['ja', 'ja-Hant', 'en'])
                 text = ' '.join([entry.text for entry in transcript_list])
                 return jsonify({'transcript': text, 'video_id': video_id})
-except Exception as e:
+    except Exception as e:
             return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
