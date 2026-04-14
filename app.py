@@ -1,6 +1,6 @@
 from flask import Flask, request, jsonify
 from youtube_transcript_api import YouTubeTranscriptApi
-import re, os
+import re, os, tempfile, base64
 
 app = Flask(__name__)
 
@@ -8,20 +8,29 @@ app = Flask(__name__)
 def get_transcript():
     data = request.json
     url = data.get('url', '')
-
     match = re.search(r'(?:v=|youtu\.be/)([^&\n?#]+)', url)
     if not match:
-                return jsonify({'error': 'URLが無効です'}), 400
-
+        return jsonify({'error': 'URLが無効です'}), 400
     video_id = match.group(1)
-
+    cookies_path = None
     try:
-                ytt_api = YouTubeTranscriptApi()
-                transcript_list = ytt_api.fetch(video_id, languages=['ja', 'ja-Hant', 'en'])
-                text = ' '.join([entry.text for entry in transcript_list])
-                return jsonify({'transcript': text, 'video_id': video_id})
+        cookies_b64 = os.environ.get('YOUTUBE_COOKIES_B64')
+        if cookies_b64:
+            cookies_content = base64.b64decode(cookies_b64).decode('utf-8')
+            with tempfile.NamedTemporaryFile(mode='w', suffix='.txt', delete=False) as f:
+                f.write(cookies_content)
+                cookies_path = f.name
+            ytt_api = YouTubeTranscriptApi(cookies=cookies_path)
+        else:
+            ytt_api = YouTubeTranscriptApi()
+        transcript_list = ytt_api.fetch(video_id, languages=['ja', 'ja-Hant', 'en'])
+        text = ' '.join([entry.text for entry in transcript_list])
+        return jsonify({'transcript': text, 'video_id': video_id})
     except Exception as e:
-            return jsonify({'error': str(e)}), 500
+        return jsonify({'error': str(e)}), 500
+    finally:
+        if cookies_path and os.path.exists(cookies_path):
+            os.unlink(cookies_path)
 
 if __name__ == '__main__':
-        app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 10000)))
+    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 10000)))
