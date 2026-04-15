@@ -20,11 +20,12 @@ def get_transcript():
             with tempfile.NamedTemporaryFile(mode='w', suffix='.txt', delete=False) as f:
                 f.write(cookies_content)
                 cookies_path = f.name
-            ytt_api = YouTubeTranscriptApi(cookies=cookies_path)
+            transcript_list = YouTubeTranscriptApi.list_transcripts(video_id, cookies=cookies_path)
         else:
-            ytt_api = YouTubeTranscriptApi()
-        transcript_list = ytt_api.fetch(video_id, languages=['ja', 'ja-Hant', 'en'])
-        text = ' '.join([entry.text for entry in transcript_list])
+            transcript_list = YouTubeTranscriptApi.list_transcripts(video_id)
+        transcript = transcript_list.find_transcript(['ja', 'ja-Hant', 'en'])
+        fetched = transcript.fetch()
+        text = ' '.join([entry['text'] for entry in fetched])
         return jsonify({'transcript': text, 'video_id': video_id})
     except Exception as e:
         return jsonify({'error': str(e)}), 500
